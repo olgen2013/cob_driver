@@ -56,15 +56,69 @@
 // Constructor
 UndercarriageCtrlGeom::UndercarriageCtrlGeom(std::string sIniDirectory)
 {
+
+    std::cout << "IN INSTANCE" << std::endl;
 	m_sIniDirectory = sIniDirectory;
-	
+
+    std::ifstream yaml_istream;
+    yaml_istream.exceptions ( std::ifstream::failbit | std::ifstream::badbit );
+
+    plt_conf = new YAML::Node();
+    motion_conf = new YAML::Node();
+
+    // Parse config parameters from Platform.yaml and make them accessable via plt_conf
+    try {
+        // open/read file stream
+        yaml_istream.open((m_sIniDirectory + "Platform.yaml").c_str());
+
+        // open and parse yaml stream.
+        YAML::Parser yaml_parser(yaml_istream);
+
+        yaml_parser.GetNextDocument(*plt_conf);
+
+        yaml_istream.close();
+
+        (*plt_conf)["Config"]["NumberOfMotors"] >> m_iNumberOfDrives;
+        (*plt_conf)["Config"]["NumberOfWheels"] >> m_iNumberOfWheels;
+
+    } catch(YAML::ParserException& e) {
+      std::cerr << e.what() << std::endl;
+    } catch(YAML::BadDereference& e) {
+      std::cerr << e.what() << " -- Can't access >> Config << Parameter in Platform.yaml " << std::endl;
+    } catch (std::ifstream::failure e) {
+      std::cerr << "Exception while opening/reading/closing file path: " << m_sIniDirectory << std::endl;
+      std::cerr << e.what() << std::endl;
+    } catch (std::exception e) {
+      std::cerr << e.what() << std::endl;
+    }
+
+    // Parse config parameters from MotionCtrl.yaml and make them accessable via motion_conf
+    try {
+
+        std::string motion_conf_path = "/home/mig-jg/git/src/cob_robots/cob_hardware_config/raw3-1/config/base/MotionCtrl.yaml";
+
+        // open/read file stream
+        yaml_istream.open((m_sIniDirectory + "MotionCtrl.yaml").c_str());
+
+        // open and parse yaml stream.
+        YAML::Parser yaml_parser(yaml_istream);
+
+        yaml_parser.GetNextDocument(*motion_conf);
+
+    } catch(YAML::ParserException& e) {
+      std::cerr << e.what() << std::endl;
+    } catch(YAML::BadDereference& e) {
+      std::cerr << e.what() << " -- Can't access >> Config << Parameter in Platform.yaml " << std::endl;
+    } catch (std::ifstream::failure e) {
+      std::cerr << "Exception while opening/reading/closing file path: " << m_sIniDirectory << std::endl;
+      std::cerr << e.what() << std::endl;
+    } catch (std::exception e) {
+      std::cerr << e.what() << std::endl;
+    }
+
 	// init EMStop flag
 	m_bEMStopActive = false;
 	
-	IniFile iniFile;
-	iniFile.SetFileName(m_sIniDirectory + "Platform.ini", "UnderCarriageCtrlGeom.cpp");
-	iniFile.GetKeyInt("Config", "NumberOfWheels", &m_iNumberOfDrives, true);
-
 	// init vectors
 	m_vdVelGearDriveRadS.assign(4,0);
 	m_vdVelGearSteerRadS.assign(4,0);
@@ -157,36 +211,36 @@ void UndercarriageCtrlGeom::InitUndercarriageCtrl(void)
 {
 	//LOG_OUT("Initializing Undercarriage-Controller (Geom)");
 
-	IniFile iniFile;
+    try{
+        (*plt_conf)["Geom"]["DistWheels"] >> m_UnderCarriagePrms.iDistWheels;
+        (*plt_conf)["Geom"]["RadiusWheel"] >> m_UnderCarriagePrms.iRadiusWheelMM;
+        (*plt_conf)["Geom"]["DistSteerAxisToDriveWheelCenter"] >> m_UnderCarriagePrms.iDistSteerAxisToDriveWheelMM;
 
-	iniFile.SetFileName(m_sIniDirectory + "Platform.ini", "UnderCarriageCtrlGeom.cpp");
-	iniFile.GetKeyInt("Geom", "DistWheels", &m_UnderCarriagePrms.iDistWheels, true);
-	iniFile.GetKeyInt("Geom", "RadiusWheel", &m_UnderCarriagePrms.iRadiusWheelMM, true);
-	iniFile.GetKeyInt("Geom", "DistSteerAxisToDriveWheelCenter", &m_UnderCarriagePrms.iDistSteerAxisToDriveWheelMM, true);
+        // wheel params
+        for(int i=0; i < (*plt_conf)["Geom"]["Wheels"].size(); i++){
 
-	iniFile.GetKeyDouble("Geom", "Wheel1XPos", &m_vdWheelXPosMM[0], true);
-	iniFile.GetKeyDouble("Geom", "Wheel1YPos", &m_vdWheelYPosMM[0], true);
-	iniFile.GetKeyDouble("Geom", "Wheel2XPos", &m_vdWheelXPosMM[1], true);
-	iniFile.GetKeyDouble("Geom", "Wheel2YPos", &m_vdWheelYPosMM[1], true);
-	iniFile.GetKeyDouble("Geom", "Wheel3XPos", &m_vdWheelXPosMM[2], true);
-	iniFile.GetKeyDouble("Geom", "Wheel3YPos", &m_vdWheelYPosMM[2], true);
-	iniFile.GetKeyDouble("Geom", "Wheel4XPos", &m_vdWheelXPosMM[3], true);
-	iniFile.GetKeyDouble("Geom", "Wheel4YPos", &m_vdWheelYPosMM[3], true);
+            std::stringstream ss;
+            ss << i;
 
-	iniFile.GetKeyDouble("DrivePrms", "MaxDriveRate", &m_UnderCarriagePrms.dMaxDriveRateRadpS, true);
-	iniFile.GetKeyDouble("DrivePrms", "MaxSteerRate", &m_UnderCarriagePrms.dMaxSteerRateRadpS, true);
+            (*plt_conf)["Geom"]["Wheels"][ss.str()]["xPos"] >> m_vdWheelXPosMM[i];
+            (*plt_conf)["Geom"]["Wheels"][ss.str()]["yPos"] >> m_vdWheelYPosMM[i];
+            (*plt_conf)["Geom"]["Wheels"][ss.str()]["WheelSteerDriveCoupling"] >> m_UnderCarriagePrms.vdSteerDriveCoupling[i];
+            (*plt_conf)["Geom"]["Wheels"][ss.str()]["WheelNeutralPosition"] >> m_UnderCarriagePrms.WheelNeutralPos[i];
 
-	iniFile.GetKeyDouble("DrivePrms", "Wheel1SteerDriveCoupling", &m_UnderCarriagePrms.vdSteerDriveCoupling[0], true);
-	iniFile.GetKeyDouble("DrivePrms", "Wheel2SteerDriveCoupling", &m_UnderCarriagePrms.vdSteerDriveCoupling[1], true);
-	iniFile.GetKeyDouble("DrivePrms", "Wheel3SteerDriveCoupling", &m_UnderCarriagePrms.vdSteerDriveCoupling[2], true);
-	iniFile.GetKeyDouble("DrivePrms", "Wheel4SteerDriveCoupling", &m_UnderCarriagePrms.vdSteerDriveCoupling[3], true);
+            std::cout << m_vdWheelXPosMM[i] << "   " << m_vdWheelYPosMM[i] << "   " << m_UnderCarriagePrms.vdSteerDriveCoupling[i] << "   " << m_UnderCarriagePrms.WheelNeutralPos[i]<< std::endl;
 
-	iniFile.GetKeyDouble("DrivePrms", "Wheel1NeutralPosition", &m_UnderCarriagePrms.WheelNeutralPos[0], true);
-	iniFile.GetKeyDouble("DrivePrms", "Wheel2NeutralPosition", &m_UnderCarriagePrms.WheelNeutralPos[1], true);
-	iniFile.GetKeyDouble("DrivePrms", "Wheel3NeutralPosition", &m_UnderCarriagePrms.WheelNeutralPos[2], true);
-	iniFile.GetKeyDouble("DrivePrms", "Wheel4NeutralPosition", &m_UnderCarriagePrms.WheelNeutralPos[3], true);
+        }
+
+        (*plt_conf)["DrivePrms"]["MaxDriveRate"] >> m_UnderCarriagePrms.dMaxDriveRateRadpS;
+        (*plt_conf)["DrivePrms"]["MaxSteerRate"] >> m_UnderCarriagePrms.dMaxSteerRateRadpS;
+
+    } catch(YAML::BadDereference& e){
+      std::cerr << e.what() << " -- Can't access >> Geom << Parameter in Platform.yaml " << std::endl;
+    } catch(std::exception& e){
+        std::cerr << e.what() << std::endl;
+    }
 	
-	for(int i = 0; i<4; i++)
+    for(int i = 0; i<m_iNumberOfWheels; i++)
 	{	
 		m_UnderCarriagePrms.WheelNeutralPos[i] = MathSup::convDegToRad(m_UnderCarriagePrms.WheelNeutralPos[i]);
 		// provisorial --> skip interpolation
@@ -196,20 +250,33 @@ void UndercarriageCtrlGeom::InitUndercarriageCtrl(void)
 		// also Init choosen Target angle
 		m_vdAngGearSteerTargetRad[i] = m_UnderCarriagePrms.WheelNeutralPos[i];
 	}
-	
-	iniFile.GetKeyDouble("Thread", "ThrUCarrCycleTimeS", &m_UnderCarriagePrms.dCmdRateS, true);
 
-	// Read Values for Steering Position Controller from IniFile
-	iniFile.SetFileName(m_sIniDirectory + "MotionCtrl.ini", "PltfHardwareCoB3.h");
-	// Prms of Impedance-Ctrlr
-	iniFile.GetKeyDouble("SteerCtrl", "Spring", &m_dSpring, true);
-	iniFile.GetKeyDouble("SteerCtrl", "Damp", &m_dDamp, true);
-	iniFile.GetKeyDouble("SteerCtrl", "VirtMass", &m_dVirtM, true);
-	iniFile.GetKeyDouble("SteerCtrl", "DPhiMax", &m_dDPhiMax, true);
-	iniFile.GetKeyDouble("SteerCtrl", "DDPhiMax", &m_dDDPhiMax, true);
+
+    try{
+        (*plt_conf)["Thread"]["ThrUCarrCycleTimeS"] >> m_UnderCarriagePrms.dCmdRateS;
+
+    } catch(YAML::BadDereference& e){
+      std::cerr << e.what() << " -- Can't access >> Thread << Parameter in Platform.yaml " << std::endl;
+    } catch(std::exception& e){
+        std::cerr << e.what() << std::endl;
+    }
+
+    // Read Values for Steering Position Controller from MotionCtrl.yaml
+    try{
+        (*motion_conf)["SteerCtrl"]["Spring"] >> m_dSpring;
+        (*motion_conf)["SteerCtrl"]["Damp"] >> m_dDamp;
+        (*motion_conf)["SteerCtrl"]["VirtMass"] >> m_dVirtM;
+        (*motion_conf)["SteerCtrl"]["DPhiMax"] >> m_dDPhiMax;
+        (*motion_conf)["SteerCtrl"]["DDPhiMax"] >> m_dDDPhiMax;
+
+    } catch(YAML::BadDereference& e){
+      std::cerr << e.what() << " -- Can't access >> SteerCtrl << Parameter in Motionctrl.yaml " << std::endl;
+    } catch(std::exception& e){
+        std::cerr << e.what() << std::endl;
+    }
 
 	// calculate polar coords of Wheel Axis in robot coordinate frame
-	for(int i=0; i<4; i++)
+    for(int i=0; i<m_iNumberOfWheels; i++)
 	{
 		m_vdWheelDistMM[i] = sqrt( (m_vdWheelXPosMM[i] * m_vdWheelXPosMM[i]) + (m_vdWheelYPosMM[i] * m_vdWheelYPosMM[i]) );
 		m_vdWheelAngRad[i] = MathSup::atan4quad(m_vdWheelXPosMM[i], m_vdWheelYPosMM[i]);
@@ -219,7 +286,7 @@ void UndercarriageCtrlGeom::InitUndercarriageCtrl(void)
 	CalcExWheelPos();
 
 	// calculate compensation factor for velocity
-	for(int i = 0; i<4; i++)
+    for(int i = 0; i<m_iNumberOfWheels; i++)
 	{
 		m_UnderCarriagePrms.vdFactorVel[i] = - m_UnderCarriagePrms.vdSteerDriveCoupling[i]
 				     +(double(m_UnderCarriagePrms.iDistSteerAxisToDriveWheelMM) / double(m_UnderCarriagePrms.iRadiusWheelMM));

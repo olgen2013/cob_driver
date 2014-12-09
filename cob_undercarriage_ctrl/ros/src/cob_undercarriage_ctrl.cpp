@@ -76,6 +76,9 @@
 #include <cob_undercarriage_ctrl/UndercarriageCtrlGeom.h>
 #include <cob_utilities/IniFile.h>
 //#include <cob_utilities/MathSup.h>
+#include <fstream>
+#include "yaml-cpp/yaml.h"
+
 
 //####################
 //#### node class ####
@@ -110,6 +113,7 @@ class NodeClass
     // member variables
     UndercarriageCtrlGeom * ucar_ctrl_;	// instantiate undercarriage controller
     std::string sIniDirectory;
+    std::string sYamlDirectory;
     bool is_initialized_bool_;			// flag wether node is already up and running
     bool broadcast_tf_;			// flag wether to broadcast the tf from odom to base_link
     int drive_chain_diagnostic_;		// flag whether base drive chain is operating normal 
@@ -123,10 +127,12 @@ class NodeClass
 
     int m_iNumJoints;
 
+    YAML::Node* yaml_conf_node;
+
     diagnostic_msgs::DiagnosticStatus diagnostic_status_lookup_; // used to access defines for warning levels
 
     // Constructor
-    NodeClass()
+    NodeClass() : yaml_conf_node(new YAML::Node())
     {
       // initialization of variables
       is_initialized_bool_ = false;
@@ -198,12 +204,42 @@ class NodeClass
         n.getParam("broadcast_tf", broadcast_tf_);
       }
 
-      IniFile iniFile;
-      iniFile.SetFileName(sIniDirectory + "Platform.ini", "PltfHardwareCoB3.h");
-      iniFile.GetKeyInt("Config", "NumberOfMotors", &m_iNumJoints, true);
+//      IniFile iniFile;
+//      iniFile.SetFileName(sIniDirectory + "Platform.ini", "PltfHardwareCoB3.h");
+//      iniFile.GetKeyInt("Config", "NumberOfMotors", &m_iNumJoints, true);
+
+      //TODO: init via ros param server
+      sIniDirectory = "/home/mig-jg/git/src/cob_robots/cob_hardware_config/raw3-1/config/base/";
+      sYamlDirectory = sIniDirectory + "Platform.yaml";
+
+
+
+      std::ifstream yaml_istream;
+      yaml_istream.exceptions ( std::ifstream::failbit | std::ifstream::badbit );
+
+      try {
+        // open/read file stream
+        yaml_istream.open(sYamlDirectory.c_str());
+
+        // open and parse yaml stream.
+        YAML::Parser yaml_parser(yaml_istream);
+        yaml_parser.GetNextDocument(*yaml_conf_node);
+
+        (*yaml_conf_node)["Config"]["NumberOfMotors"] >> m_iNumJoints;
+        std::cout << "m_iNumJoints: " << m_iNumJoints << std::endl;
+
+      } catch(YAML::ParserException& e) {
+        std::cout << e.what() << std::endl;
+      } catch(YAML::BadDereference& e) {
+        std::cout << e.what() << " -- Can't access >> Config << Parameter in yaml-file " << std::endl;
+      } catch (std::ifstream::failure e) {
+        std::cerr << "Exception while opening/reading/closing file path: " << sYamlDirectory << std::endl;
+        std::cerr << e.what() << std::endl;
+      } catch (std::exception e) {
+        std::cerr << e.what() << std::endl;
+      }
 
       ucar_ctrl_ = new UndercarriageCtrlGeom(sIniDirectory);
-
 
       // implementation of topics
       // published topics
@@ -228,7 +264,6 @@ class NodeClass
 
       //set up timer to cyclically call controller-step
       timer_ctrl_step_ = n.createTimer(ros::Duration(sample_time_), &NodeClass::timerCallbackCtrlStep, this);
-
     }
 
     // Destructor
@@ -535,7 +570,7 @@ int main(int argc, char** argv)
      - timer callback -> calculate controller step at a rate of sample_time_ (timerCallbackCtrlStep)
      - other topic callbacks (diagnostics, command, em_stop_state)
      */
-  ros::spin();
+//  ros::spin();
 
   return 0;
 }

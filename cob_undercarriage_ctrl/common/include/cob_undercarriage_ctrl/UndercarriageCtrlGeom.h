@@ -59,6 +59,12 @@
 #include <cob_utilities/IniFile.h>
 #include <cob_utilities/MathSup.h>
 #include <cob_utilities/TimeStamp.h>
+#include <fstream>
+#include <err.h>
+#include "yaml-cpp/yaml.h"
+#include <sstream>
+#include <vector>
+#include <map>
 
 class UndercarriageCtrlGeom
 {
@@ -67,9 +73,14 @@ private:
 	bool m_bEMStopActive;
 	
 	int m_iNumberOfDrives;
+    int m_iNumberOfWheels;
 	
 	std::string m_sIniDirectory;
 	
+    YAML::Node* plt_conf;
+    YAML::Node* motion_conf;
+
+
 	/*// Logging for debugging
 	// create Filepointers
 	FILE * m_pfileDesVel, * m_pfileMeasVel;
