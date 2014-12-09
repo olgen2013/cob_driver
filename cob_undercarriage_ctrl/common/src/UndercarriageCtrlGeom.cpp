@@ -120,34 +120,34 @@ UndercarriageCtrlGeom::UndercarriageCtrlGeom(std::string sIniDirectory)
 	m_bEMStopActive = false;
 	
 	// init vectors
-	m_vdVelGearDriveRadS.assign(4,0);
-	m_vdVelGearSteerRadS.assign(4,0);
-	m_vdDltAngGearDriveRad.assign(4,0);
-	m_vdAngGearSteerRad.assign(4,0);
+    m_vdVelGearDriveRadS.assign(m_iNumberOfWheels,0);
+    m_vdVelGearSteerRadS.assign(m_iNumberOfWheels,0);
+    m_vdDltAngGearDriveRad.assign(m_iNumberOfWheels,0);
+    m_vdAngGearSteerRad.assign(m_iNumberOfWheels,0);
 
 	//m_vdVelGearDriveIntpRadS.assign(4,0);
 	//m_vdVelGearSteerIntpRadS.assign(4,0);
 	//m_vdAngGearSteerIntpRad.assign(4,0);
 
-	m_vdVelGearDriveCmdRadS.assign(4,0);
-	m_vdVelGearSteerCmdRadS.assign(4,0);
-	m_vdAngGearSteerCmdRad.assign(4,0);
+    m_vdVelGearDriveCmdRadS.assign(m_iNumberOfWheels,0);
+    m_vdVelGearSteerCmdRadS.assign(m_iNumberOfWheels,0);
+    m_vdAngGearSteerCmdRad.assign(m_iNumberOfWheels,0);
 
-	m_vdWheelXPosMM.assign(4,0);
-	m_vdWheelYPosMM.assign(4,0);
-	m_vdWheelDistMM.assign(4,0);
-	m_vdWheelAngRad.assign(4,0);
+    m_vdWheelXPosMM.assign(m_iNumberOfWheels,0);
+    m_vdWheelYPosMM.assign(m_iNumberOfWheels,0);
+    m_vdWheelDistMM.assign(m_iNumberOfWheels,0);
+    m_vdWheelAngRad.assign(m_iNumberOfWheels,0);
 
-	m_vdExWheelXPosMM.assign(4,0);
-	m_vdExWheelYPosMM.assign(4,0);
-	m_vdExWheelDistMM.assign(4,0);
-	m_vdExWheelAngRad.assign(4,0);
+    m_vdExWheelXPosMM.assign(m_iNumberOfWheels,0);
+    m_vdExWheelYPosMM.assign(m_iNumberOfWheels,0);
+    m_vdExWheelDistMM.assign(m_iNumberOfWheels,0);
+    m_vdExWheelAngRad.assign(m_iNumberOfWheels,0);
 
-	m_vdAngGearSteerTarget1Rad.assign(4,0);
-	m_vdVelGearDriveTarget1RadS.assign(4,0);
-	m_vdAngGearSteerTarget2Rad.assign(4,0);
-	m_vdVelGearDriveTarget2RadS.assign(4,0);
-	m_vdAngGearSteerTargetRad.assign(4,0);
+    m_vdAngGearSteerTarget1Rad.assign(m_iNumberOfWheels,0);
+    m_vdVelGearDriveTarget1RadS.assign(m_iNumberOfWheels,0);
+    m_vdAngGearSteerTarget2Rad.assign(m_iNumberOfWheels,0);
+    m_vdVelGearDriveTarget2RadS.assign(m_iNumberOfWheels,0);
+    m_vdAngGearSteerTargetRad.assign(m_iNumberOfWheels,0);
 	m_vdVelGearDriveTargetRadS.assign(4,0);
 
 	m_dCmdVelLongMMS = 0;
@@ -155,11 +155,11 @@ UndercarriageCtrlGeom::UndercarriageCtrlGeom(std::string sIniDirectory)
 	m_dCmdRotRobRadS = 0;
 	m_dCmdRotVelRadS = 0;
 	
-	m_UnderCarriagePrms.WheelNeutralPos.assign(4,0);
-	m_UnderCarriagePrms.vdSteerDriveCoupling.assign(4,0);
-	m_UnderCarriagePrms.vdFactorVel.assign(4,0);
+    m_UnderCarriagePrms.WheelNeutralPos.assign(m_iNumberOfWheels,0);
+    m_UnderCarriagePrms.vdSteerDriveCoupling.assign(m_iNumberOfWheels,0);
+    m_UnderCarriagePrms.vdFactorVel.assign(m_iNumberOfWheels,0);
 	
-	m_vdCtrlVal.assign( 4, std::vector<double> (2,0.0) );
+    m_vdCtrlVal.assign( m_iNumberOfWheels, std::vector<double> (2,0.0) );
 	
 	//m_vdDeltaAngIntpRad.assign(4,0);
 	//m_vdDeltaDriveIntpRadS.assign(4,0);
@@ -239,7 +239,7 @@ void UndercarriageCtrlGeom::InitUndercarriageCtrl(void)
     } catch(std::exception& e){
         std::cerr << e.what() << std::endl;
     }
-	
+
     for(int i = 0; i<m_iNumberOfWheels; i++)
 	{	
 		m_UnderCarriagePrms.WheelNeutralPos[i] = MathSup::convDegToRad(m_UnderCarriagePrms.WheelNeutralPos[i]);
@@ -312,7 +312,7 @@ void UndercarriageCtrlGeom::SetDesiredPltfVelocity(double dCmdVelLongMMS, double
 	CalcInverse();
 
 	// determine optimal Pltf-Configuration
-	for (int i = 0; i<4; i++)
+    for (int i = 0; i<m_iNumberOfWheels; i++)
 	{
 		// Normalize Actual Wheel Position before calculation
 		dCurrentPosWheelRAD = m_vdAngGearSteerRad[i];
@@ -484,7 +484,7 @@ void UndercarriageCtrlGeom::CalcInverse(void)
 	// check if zero movement commanded -> keep orientation of wheels, set wheel velocity to zero
 	if((m_dCmdVelLongMMS == 0) && (m_dCmdVelLatMMS == 0) && (m_dCmdRotRobRadS == 0) && (m_dCmdRotVelRadS == 0))
 	{
-		for(int i = 0; i<4; i++)
+        for(int i = 0; i<m_iNumberOfWheels; i++)
 		{
 			m_vdAngGearSteerTarget1Rad[i] = m_vdAngGearSteerRad[i];
 			m_vdVelGearDriveTarget1RadS[i] = 0.0;
@@ -495,7 +495,7 @@ void UndercarriageCtrlGeom::CalcInverse(void)
 	}
 
 	// calculate sets of possible Steering Angle // Drive-Velocity combinations
-	for (int i = 0; i<4; i++)
+    for (int i = 0; i<m_iNumberOfWheels; i++)
 	{	
 		// calculate velocity and direction of single wheel motion
 		// Translational Portion
@@ -533,7 +533,7 @@ void UndercarriageCtrlGeom::CalcDirect(void)
 	double dtempRelDistWheelsMM;	// distance of two wheels in mm 
 	double dtempRelPhiWheel1RAD;	// Steering Angle of (im math. pos. direction) first Wheel w.r.t. the linking axis of the two wheels
 	double dtempRelPhiWheel2RAD;	// Steering Angle of (im math. pos. direction) first Wheel w.r.t. the linking axis of the two wheels
-	std::vector<double> vdtempVelWheelMMS(4);	// Wheel-Velocities (all Wheels) in mm/s
+    std::vector<double> vdtempVelWheelMMS(m_iNumberOfWheels);	// Wheel-Velocities (all Wheels) in mm/s
 
 	// initial values
 	dtempVelXRobMMS = 0;			// Robot-Velocity in x-Direction (longitudinal) in mm/s (in Robot-Coordinateframe)
@@ -602,7 +602,7 @@ void UndercarriageCtrlGeom::CalcDirect(void)
 void UndercarriageCtrlGeom::CalcExWheelPos(void)
 {
 	// calculate wheel position and velocity
-	for(int i = 0; i<4; i++)
+    for(int i = 0; i<m_iNumberOfWheels; i++)
 	{
 		// calculate current geometry of robot (exact wheel position, taking into account steering offset of wheels)
 		m_vdExWheelXPosMM[i] = m_vdWheelXPosMM[i] + m_UnderCarriagePrms.iDistSteerAxisToDriveWheelMM * sin(m_vdAngGearSteerRad[i]);
@@ -622,11 +622,11 @@ void UndercarriageCtrlGeom::CalcControlStep(void)
 	// check if zero movement commanded -> keep orientation of wheels, set steer velocity to zero
 	if ((m_dCmdVelLongMMS == 0) && (m_dCmdVelLatMMS == 0) && (m_dCmdRotRobRadS == 0) && (m_dCmdRotVelRadS == 0))
 	{
-		m_vdVelGearDriveCmdRadS.assign(4,0.0);		// set velocity for drives to zero
-		m_vdVelGearSteerCmdRadS.assign(4,0.0);		// set velocity for steers to zero
+        m_vdVelGearDriveCmdRadS.assign(m_iNumberOfWheels,0.0);		// set velocity for drives to zero
+        m_vdVelGearSteerCmdRadS.assign(m_iNumberOfWheels,0.0);		// set velocity for steers to zero
 
 		// set internal states of controller to zero
-		for(int i=0; i<4; i++)
+        for(int i=0; i<m_iNumberOfWheels; i++)
 		{
 			m_vdCtrlVal[i][0] = 0.0;
 			m_vdCtrlVal[i][1] = 0.0;
@@ -639,7 +639,7 @@ void UndercarriageCtrlGeom::CalcControlStep(void)
 	double dDeltaPhi;
 	double dForceDamp, dForceProp, dAccCmd, dVelCmdInt; // PI- and Impedance-Ctrl
 	
-	for (int i=0; i<4; i++)
+    for (int i=0; i<m_iNumberOfWheels; i++)
 	{
 		// provisorial --> skip interpolation and always take Target
 		m_vdVelGearDriveCmdRadS[i] = m_vdVelGearDriveTargetRadS[i];
@@ -651,14 +651,14 @@ void UndercarriageCtrlGeom::CalcControlStep(void)
 
 		/*m_vdAngGearSteerIntpRad[i] += m_vdDeltaAngIntpRad[i];
 		MathSup::normalizePi(m_vdAngGearSteerIntpRad[i]);
-		m_vdVelGearDriveIntpRadS[i] += m_vdDeltaDriveIntpRadS[i];
+        m_vdVelGearDriveIntpRadS[i] += m_vdDeltaDriveIntpRadS[i];
 
 		m_vdVelGearDriveCmdRadS[i] = m_vdVelGearDriveIntpRadS[i];
 		m_vdAngGearSteerCmdRad[i] = m_vdAngGearSteerIntpRad[i];*/
 	}
 
 
-	for (int i = 0; i<4; i++)
+    for (int i = 0; i<m_iNumberOfWheels; i++)
 	{
 		// Normalize Actual Wheel Position before calculation
 		dCurrentPosWheelRAD = m_vdAngGearSteerRad[i];
@@ -706,7 +706,7 @@ void UndercarriageCtrlGeom::CalcControlStep(void)
 	}
 	
 	// Correct Driving-Wheel-Velocity, because of coupling and axis-offset
-	for (int i = 0; i<4; i++)
+    for (int i = 0; i<m_iNumberOfWheels; i++)
 	{
 		m_vdVelGearDriveCmdRadS[i] += m_vdVelGearSteerCmdRadS[i] * m_UnderCarriagePrms.vdFactorVel[i];
 	}
@@ -782,7 +782,7 @@ void UndercarriageCtrlGeom::setEMStopActive(bool bEMStopActive)
 	if(m_bEMStopActive)
 	{
 		// Steermodules
-		for(int i=0; i<4; i++)
+        for(int i=0; i<m_iNumberOfWheels; i++)
 		{
 			for(int j=0; j< 2; j++)
 			{
@@ -790,7 +790,7 @@ void UndercarriageCtrlGeom::setEMStopActive(bool bEMStopActive)
 			}
 		}
 		// Outputs
-		for(int i=0; i<4; i++)
+        for(int i=0; i<m_iNumberOfWheels; i++)
 		{
 			m_vdVelGearDriveCmdRadS[i] = 0.0;
 			m_vdVelGearSteerCmdRadS[i] = 0.0;
